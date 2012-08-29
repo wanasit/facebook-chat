@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    
+    <script src="./jquery/jquery.min.js"></script>
+    
+    <script src="./bootstrap/js/bootstrap.js"></script>
+    <link href="./bootstrap/css/bootstrap.css" rel="stylesheet">
+    <link href="./bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
+    <link href="./site.css" rel="stylesheet">
+    
+    <script src="http://localhost:8086/socket.io/socket.io.js"></script>
+    <script>
+    
+      function getParameterByName(name)
+      {
+        name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
+        var regexS = "[\\?&]" + name + "=([^&#]*)";
+        var regex = new RegExp(regexS);
+        var results = regex.exec(window.location.search);
+        if(results == null)
+          return "";
+        else
+          return decodeURIComponent(results[1].replace(/\+/g, " "));
+      }
+      
+      var access_token = getParameterByName('access_token');
+      if(!access_token){
+        
+        alert('Cannot find "access_token"');
+      }
+      
+      var socket = io.connect('http://localhost:8086/');
+      socket.on('welcome', function (data) {
+        socket.emit('connect',access_token);
+      });
+      
+      socket.on('disconnect', function() {
+        $(".container").removeClass('connected');
+      })
+      
+      socket.on('connected', function(message) {
+        console.log(message)
+        $(".container").addClass('connected');
+      })
+      
+      
+      
+      socket.on('message', function(message) {
+        console.log(message)
+        
+        var sender = message.from;
+        var sender_id = sender.substring(0, sender.indexOf('@'))
+        
+        var element = $('#'+sender_id);
+        if(element.length == 0){
+          element = $('<div class="span5 pull-right"><h2></h2><ul></ul><input type="text"></input></div>');
+          $('.container .row').append(element);
+          
+          element.attr('id',sender_id);
+          element.find('h2').text(sender);
+        }
+        
+        element.find('ul').append('<li class="recieve">'+message.body+'</li>');
+      })
+      
+      $(".container .row>div input").live('keyup', function(event){
+          if(event.keyCode == 13){
+            
+            var text = $(this).val();
+            var id   = $(this).parent().attr('id');
+            
+            socket.emit('send',{ to: id+'@chat.facebook.com', body: text });
+            $(this).parent().find('ul').append('<li class="send">'+text+'</li>');
+            $(this).val('');
+          }
+      });
+      
+    </script>
+    
+  </head>
+  <body>
+    
+      <div class="navbar navbar-top">
+        <div class="navbar-inner">
+          <div class="container">
+            <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </a>
+            <a class="brand" href="/">Facebook Chat</a>
+            <div class="nav-collapse pull-right">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="container">
+        
+        <!-- Example row of columns -->
+        <div class="row">  
+        </div>
+        
+        <hr>
+        <footer>
+          <p>© Berrysoft 2012</p>
+        </footer>
+
+      </div> <!-- /container -->
+  
+  </body>
+</html>
